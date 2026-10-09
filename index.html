@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tugu Jogja — Monumen Sejarah & Filosofi Yogyakarta</title>
+  <meta name="description" content="Sejarah lengkap dan visualisasi 3D interaktif Tugu Jogja (Tugu Pal Putih), monumen ikonik Kota Yogyakarta." />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --c-bg: #0d0f14;
+      --c-bg-2: #14171f;
+      --c-surface: #1a1e29;
+      --c-border: #2a3040;
+      --c-text: #e8e6e1;
+      --c-muted: #9a9691;
+      --c-accent: #d4a94e;
+      --c-accent-2: #b8893a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.7;
+    }
+
+    /* ---------- NAVBAR ---------- */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 2rem;
+      background: rgba(13, 15, 20, 0.82);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--c-border);
+    }
+    nav .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--c-accent);
+      letter-spacing: 0.06em;
+    }
+    nav ul { display: flex; gap: 1.6rem; list-style: none; }
+    nav a {
+      color: var(--c-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      transition: color .2s;
+    }
+    nav a:hover { color: var(--c-accent); }
+
+    /* ---------- HERO / 3D ---------- */
+    #hero { position: relative; height: 100vh; min-height: 560px; }
+    #scene-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 2rem 3rem;
+      background: linear-gradient(to top, rgba(13,15,20,.9) 0%, rgba(13,15,20,.25) 35%, transparent 60%);
+    }
+    .hero-overlay > * { pointer-events: auto; }
+    .hero-tag {
+      font-size: .78rem;
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      color: var(--c-accent);
+      margin-bottom: .6rem;
+    }
+    .hero-overlay h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      line-height: 1.08;
+      font-weight: 800;
+      max-width: 720px;
+    }
+    .hero-overlay h1 span { color: var(--c-accent); }
+    .hero-overlay p.lead {
+      margin-top: .9rem;
+      max-width: 560px;
+      color: var(--c-muted);
+      font-size: 1.02rem;
+    }
+    .hero-actions { margin-top: 1.5rem; display: flex; gap: .8rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-block;
+      padding: .72rem 1.6rem;
+      border-radius: 999px;
+      font-size: .95rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--c-accent), var(--c-accent-2));
+      color: #1a1408;
+      box-shadow: 0 6px 24px rgba(212,169,78,.28);
+    }
+    .btn-ghost {
+      border: 1px solid var(--c-border);
+      color: var(--c-text);
+      background: rgba(26,30,41,.6);
+    }
+    .hint {
+      margin-top: 1rem;
+      font-size: .78rem;
+      color: #6f6b66;
+      font-style: italic;
+    }
+
+    .loading-3d {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      z-index: 6;
+      color: var(--c-muted);
+      font-size: .9rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+    }
+    .loading-3d.hidden { display: none; }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2px solid var(--c-border);
+      border-top-color: var(--c-accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .model-note {
+      font-size: .75rem;
+      color: #6f6b66;
+      max-width: 560px;
+    }
+    .model-note a { color: var(--c-muted); }
+
+    /* ---------- SECTIONS ---------- */
+    section { padding: 5.5rem 2rem; }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .section-tag {
+      font-size: .75rem;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: var(--c-accent);
+      margin-bottom: .7rem;
+    }
+    h2 {
+      font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+      margin-bottom: 1.2rem;
+      line-height: 1.25;
+    }
+    .section-text p { margin-bottom: 1rem; color: #c9c5bf; }
+    .section-text p strong { color: var(--c-text); }
+
+    #sejarah { background: var(--c-bg-2); }
+
+    /* ---------- TIMELINE ---------- */
+    .timeline { position: relative; margin-top: 2.5rem; padding-left: 2rem; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px; top: 6px; bottom: 6px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--c-accent), transparent 85%);
+    }
+    .tl-item { position: relative; padding-bottom: 2rem; }
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 8px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--c-bg);
+      border: 3px solid var(--c-accent);
+    }
+    .tl-year { font-weight: 800; color: var(--c-accent); font-size: 1.05rem; }
+    .tl-title { font-weight: 600; margin: .15rem 0 .35rem; }
+    .tl-item p { color: var(--c-muted); font-size: .95rem; }
+
+    /* ---------- CARDS GRID ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+      margin-top: 2.2rem;
+    }
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 14px;
+      padding: 1.6rem;
+      transition: transform .2s, border-color .2s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--c-accent); }
+    .card .icon { font-size: 1.8rem; margin-bottom: .8rem; }
+    .card h3 { font-size: 1.05rem; margin-bottom: .55rem; }
+    .card p { font-size: .9rem; color: var(--c-muted); }
+
+    /* ---------- QUOTE ---------- */
+    .quote {
+      border-left: 3px solid var(--c-accent);
+      padding: .6rem 0 .6rem 1.4rem;
+      margin: 2rem 0;
+      font-style: italic;
+      color: #d8d4ce;
+      font-size: 1.05rem;
+    }
+    .quote cite {
+      display: block;
+      margin-top: .6rem;
+      font-style: normal;
+      font-size: .85rem;
+      color: var(--c-muted);
+    }
+
+    /* ---------- STATS ---------- */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .stat {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 1.3rem;
+      text-align: center;
+    }
+    .stat .num { font-size: 1.9rem; font-weight: 800; color: var(--c-accent); }
+    .stat .lbl { font-size: .8rem; color: var(--c-muted); margin-top: .25rem; }
+
+    /* ---------- FOOTER ---------- */
+    footer {
+      border-top: 1px solid var(--c-border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      color: #6f6b66;
+      font-size: .85rem;
+    }
+    footer a { color: var(--c-muted); }
+
+    @media (max-width: 640px) {
+      nav ul { display: none; }
+      .hero-overlay { padding: 0 1.2rem 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">🏛 TUGU JOGJA</div>
+    <ul>
+      <li><a href="#hero">3D</a></li>
+      <li><a href="#sejarah">Sejarah</a></li>
+      <li><a href="#timeline">Linimasa</a></li>
+      <li><a href="#filosofi">Filosofi</a></li>
+      <li><a href="#fakta">Fakta</a></li>
+    </ul>
+  </nav>
+
+  <!-- ================= HERO + 3D SCENE ================= -->
+  <section id="hero">
+    <canvas id="scene-canvas"></canvas>
+
+    <div class="loading-3d" id="loading">
+      <div class="spinner"></div>
+      <span>Memuat Tugu 3D…</span>
+    </div>
+
+    <div class="hero-overlay">
+      <div class="hero-tag">Monumen Ikonik Yogyakarta</div>
+      <h1>Tugu Jogja<br /><span>Golong-Gilig Pal Putih</span></h1>
+      <p class="lead">
+        Penanda poros menuju Gunung Merapi, saksi bisu sejarah Keraton Yogyakarta,
+        dan lambang "golong-gilig" — persatuan (satu golong) dan
+        keteladanan (satu gilig).
+      </p>
+      <div class="hero-actions">
+        <a href="#sejarah" class="btn btn-primary">Baca Sejarahnya</a>
+        <button class="btn btn-ghost" id="btn-orbit">🎬 Putar Otomatis</button>
+      </div>
+      <p class="hint">💡 Drag untuk memutar • Scroll untuk zoom • Geser dua jari untuk pan</p>
+      <p class="model-note" id="model-note">
+        Model 3D by <a href="https://sketchfab.com/saw_ind" target="_blank" rel="noopener">SAW IND / Pee Wee World</a> (CC Attribution)
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= SEJARAH ================= -->
+  <section id="sejarah">
+    <div class="container section-text">
+      <div class="section-tag">Sejarah</div>
+      <h2>Dari Pohon Jati Kerdil hingga Pal Putih</h2>
+
+      <p>
+        Tugu Jogja, yang secara resmi bernama <strong>Tugu Pal Putih</strong>, adalah monumen
+        ikonik Kota Yogyakarta yang kini berdiri di persimpangan Jalan Pangeran Diponegoro,
+        Jalan A.M. Sangaji, dan Jalan Jenderal Sudirman. Meskipun tampak sederhana,
+        sejarahnya menyimpan kisah panjang yang melibatkan kosmologi Jawa, politik kolonial
+        Belanda, perjuangan kemerdekaan, hingga tragedi pada era 1940-an.
+      </p>
+
+      <h3>Nama Asli: Tugu Golong-Gilig</h3>
+      <p>
+        Nama asli monumen ini adalah <strong>Tugu Golong-Gilig</strong>. Konstruksi awalnya
+        berupa satu batang tiang silinder utuh (<em>gilig</em>) yang ditanam tegak, kemudian
+        di bagian atasnya disambung dengan kepala menyerupai cakram (<em>golong</em>).
+        Sejak awal, monumen ini dirancang dengan makna filosofis yang dalam bagi masyarakat
+        Jawa: <strong>satu golong dan satu gilig sebagai lambang persatuan dan keteladanan</strong>.
+      </p>
+
+      <h3>Masa Pembangunan: Hamengkubuwono I</h3>
+      <p>
+        Monumen ini dibangun sekitar tahun <strong>1755–1758</strong> pada masa pemerintahan
+        <strong>Sri Sultan Hamengkubuwono I</strong>, setelah Perjanjian Giyanti membagi
+        Mataram Islam menjadi Kasunanan Surakarta dan Kesultanan Yogyakarta. Tugu berfungsi
+        sebagai <em>cornelis</em> (penanda/penjuru) batas kota, sekaligus penanda poros lurus
+        menuju <strong>Gunung Merapi</strong> — yang dipercaya sebagai poros kehidupan
+        masyarakat Jawa.
+      </p>
+      <p>
+        Pada masa itu, tugu masih berdiri di antara kompleks <strong>Taman Sari</strong> dan
+        pohon beringin, dikelilingi dua bangunan benteng penjuru (<em>cornelis/corner post</em>)
+        yang berfungsi sebagai penjaga. Letaknya sengaja dirancang berada di satu garis lurus
+        dengan <strong>Keraton Yogyakarta, Alun-Alun Utara, dan Gunung Merapi</strong> — sebuah
+        sumbu kosmologi (kosmologis axis) yang memancarkan nilai keseimbangan antara manusia
+        dengan Sang Pencipta, sesama manusia, dan alam.
+      </p>
+
+      <h3>Era Kolonial: Kawasan Segaran & "Wijde Brug"</h3>
+      <p>
+        Pada masa kolonial, area sekitar tugu berupa lahan berumput dan pepohonan rindang.
+        Oleh pemerintah kolonial Belanda, kawasan ini dijadikan kawasan permukiman pejabat
+        yang asri dan rindang, dikenal dengan sebutan <strong>"Wijde Brug"</strong>
+        (jembatan lebar) — merujuk pada jembatan yang melintasi kali di dekatnya. Wilayah
+        ini menjadi salah satu kawasan paling elit di Yogyakarta saat itu.
+      </p>
+
+      <h3>1867: Gempa Merobohkan Tugu Asli</h3>
+      <p>
+        Pada tanggal <strong>10 Juni 1867</strong>, gempa bumi dahsyat mengguncang Yogyakarta
+        dan merobohkan Tugu Golong-Gilig yang asli. Sisa bangkainya berupa <strong>satu batang
+        gilig tunggal</strong> — bagian kepala cakramnya hilang. Monumen kala itu hanya tinggal
+        satu tiang menyisakan luka sejarah, dan oleh masyarakat setempat dikenal sebagai
+        kawasan yang angker dan dihindari, hingga akhirnya menjadi lahan kosong selama puluhan tahun.
+      </p>
+
+      <h3>1889: Rekonstruksi oleh Hamengkubuwono VII</h3>
+      <p>
+        Pada masa pemerintahan <strong>Sri Sultan Hamengkubuwono VII</strong>, tugu
+        direkonstruksi kembali dengan bentuk yang sangat berbeda: sebuah tiang tunggal
+        berbentuk <strong>kerucut dengan puncak lancip</strong>. Bagian atasnya dicat
+        <strong>merah-putih</strong> — warna bendera Kerajaan Belanda (Roode-Wit). Sejak
+        saat itu monumen ini dikenal dengan nama <strong>"Tugu Pal Putih"</strong> atau
+        <strong>"De Wittje Pal"</strong> (pal/tiang putih).
+      </p>
+      <p>
+        Rekonstruksi ini justru menghilangkan makna filosofis golong-gilig yang asli,
+        karena bentuk kerucutnya tidak lagi melambangkan persatuan — melainkan sekadar
+        penanda batas kota kolonial yang mewah, dikelilingi permukiman pejabat Eropa.
+      </p>
+
+      <h3>1942–1945: Masa Pendudukan Jepang</h3>
+      <p>
+        Pada masa pendudukan Jepang (1942–1945), Yogyakarta menjadi pusat aktivitas militer.
+        Tugu tetap berdiri dengan bentuk kerucut hasil rekonstruksi 1889, tetapi kondisi
+        strukturnya mulai memburuk karena usia dan kurangnya perawatan.
+      </p>
+
+      <h3>Tragedi 1947: Tugu Rusak Berat</h3>
+      <p>
+        Pada masa revolusi kemerdekaan, tepatnya tahun <strong>1947</strong>, Tugu Jogja
+        mengalami kerusakan berat akibat peristiwa perang. Menurut berbagai sumber, tugu ini
+        sempat dijadikan sasaran penembakan saat insiden yang melibatkan tentara Belanda
+        (NICA), sehingga bagian atasnya roboh kembali. Tugu kemudian berdiri dalam kondisi
+        <strong>miring dan patah</strong> selama bertahun-tahun — kondisi yang justru
+        menyimpan makna filosofis baru bagi masyarakat.
+      </p>
+
+      <h3>1949: Tugu Miring & Makna Filosofisnya</h3>
+      <p>
+        Kondisi tugu yang miring dan patah pasca-peristiwa 1947 oleh masyarakat Jawa
+        diinterpretasikan sebagai lambang perjuangan yang tidak pernah menyerah. Tugu yang
+        miring namun tetap berdiri menjadi metafora bahwa <strong>perjuangan bangsa Indonesia
+        mungkin sempat terguncang, tetapi tidak pernah tumbang</strong>. Selama bertahun-tahun,
+        Tugu Jogja yang miring justru menjadi ikon yang sangat dicintai dan difoto oleh
+        masyarakat.
+      </p>
+
+      <h3>Restorasi Pasca-Kemerdekaan</h3>
+      <p>
+        Setelah pengakuan kedaulatan Indonesia (1949), berbagai upaya perbaikan dilakukan.
+        Restorasi besar dilakukan pada dekade-dekade berikutnya hingga akhirnya tugu kembali
+        berdiri tegak dengan bentuk yang menyerupai rekonstruksi 1889, namun dengan cat
+        <strong>putih menyeluruh</strong> — sesuai namanya saat ini, Tugu Pal Putih.
+      </p>
+      <p>
+        Pada <strong> tahun 2010-an</strong>, dilakukan revitalisasi kawasan Tugu Jogja:
+        area sekitarnya dijadikan plaza ramah pejalan kaki, dilengkapi ruang publik, taman,
+        dan penataan ulang lanskap. Kini Tugu Jogja menjadi salah satu titik nol kilometer
+        budaya dan destinasi wisata paling populer di Yogyakarta — tempat berkumpulnya
+        masyarakat, terutama anak muda, terutama saat malam hari.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= TIMELINE ================= -->
+  <section id="timeline">
+    <div class="container">
+      <div class="section-tag">Linimasa</div>
+      <h2>Perjalanan Sejarah Tugu Jogja</h2>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-year">± 1755–1758</div>
+          <div class="tl-title">Pembangunan Tugu Golong-Gilig</div>
+          <p>Dibangun oleh Sri Sultan Hamengkubuwono I sebagai penanda poros Keraton–Merapi
+          dengan filosofi satu golong satu gilig (persatuan & keteladanan).</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">Abad ke-19 awal</div>
+          <div class="tl-title">Kawasan Segaran & Wijde Brug</div>
+          <p>Kawasan sekitar tugu dikembangkan kolonial Belanda menjadi permukiman pejabat
+          yang asri, dikenal sebagai "Wijde Brug".</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">10 Juni 1867</div>
+          <div class="tl-title">Gempa Merobohkan Tugu</div>
+          <p>Gempa bumi dahsyat merobohkan Tugu Golong-Gilig asli. Tersisa satu batang
+          gilig tunggal tanpa kepala cakram.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1889</div>
+          <div class="tl-title">Rekonstruksi Hamengkubuwono VII</div>
+          <p>Tugu dibangun ulang dalam bentuk kerucut lancip bercat merah-putih Belanda,
+          mulai dikenal sebagai "Tugu Pal Putih" (De Wittje Pal).</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1942–1945</div>
+          <div class="tl-title">Masa Pendudukan Jepang</div>
+          <p>Struktur tugu yang menua mulai memburuk di tengah situasi perang dunia
+          dan pendudukan Jepang.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1947</div>
+          <div class="tl-title">Rusak Berat pada Masa Revolusi</div>
+          <p>Bagian atas tugu roboh akibat peristiwa perang kemerdekaan; tugu berdiri
+          dalam kondisi miring dan patah.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">1949-an</div>
+          <div class="tl-title">Ikon Perjuangan yang Miring</div>
+          <p>Tugu yang miring namun tetap berdiri menjadi lambang semangat perjuangan
+          yang tak pernah tumbang.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">Pasca-1949</div>
+          <div class="tl-title">Restorasi & Cat Putih</div>
+          <p>Bertahap tugu diperbaiki hingga kembali tegak dengan cat putih menyeluruh,
+          sesuai nama resmi Tugu Pal Putih.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2010-an</div>
+          <div class="tl-title">Revitalisasi Plaza Tugu</div>
+          <p>Kawasan sekitar tugu dijadikan plaza publik ramah pejalan kaki. Tugu Jogja
+          kini menjadi titik nol budaya Yogyakarta.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FILOSOFI ================= -->
+  <section id="filosofi">
+    <div class="container">
+      <div class="section-tag">Filosofi</div>
+      <h2>Makna di Balik Monumen Sederhana</h2>
+
+      <div class="quote">
+        "Satu golong, satu gilig — persatuan yang bulat dan keteladanan yang tegak.
+        Manusia yang memiliki sikap 'golong-gilig' adalah manusia yang batin dan
+        lahirnya satu."
+        <cite>— Filosofi masyarakat Jawa tentang Tugu Golong-Gilig</cite>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="icon">🧭</div>
+          <h3>Poros Kosmologi Jawa</h3>
+          <p>Tugu menandai garis lurus simbolis dari Gunung Merapi — Keraton Yogyakarta —
+          Pantai Selatan. Sebuah sumbu kehidupan yang menghubungkan alam atas, alam tengah,
+          dan alam bawah dalam pandangan kosmologi Jawa.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🤝</div>
+          <h3>Golong-Gilig: Persatuan</h3>
+          <p><em>Golong</em> (cakram bulat) melambangkan kebulatan tekad, dan <em>gilig</em>
+          (tiang tunggal) melambangkan keteguhan. Keduanya adalah ajakan untuk bersatu
+          dan menjadi teladan bagi sesama.</p>
+        </div>
+        <div class="card">
+          <div class="icon">⚔️</div>
+          <h3>Saksi Perjuangan</h3>
+          <p>Tugu yang pernah miring dan patah menjadi saksi bisu perjuangan kemerdekaan.
+          Kondisinya dahulu dianggap lambang perjuangan yang terguncang namun tak pernah tumbang.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🌅</div>
+          <h3>Titik Nol Kota</h3>
+          <p>Kini tugu menjadi "titik nol" budaya Yogyakarta — tempat masyarakat berkumpul,
+          memulai perjalanan, dan merayakan peristiwa penting kota.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🏛</div>
+          <h3>Batas Kota Kolonial</h3>
+          <p>Saat dibangun, tugu menandai batas utara kota Keraton. Perkembangan kota
+          menjadikan kawasan ini salah satu pusat terpenting di Yogyakarta modern.</p>
+        </div>
+        <div class="card">
+          <div class="icon">📚</div>
+          <h3>Warisan yang Terus Hidup</h3>
+          <p>Meski bentuk aslinya telah berganti, nilai-nilai golong-gilig tetap hidup dalam
+          semangat gotong royong dan kearifan masyarakat Yogyakarta hingga kini.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAKTA ================= -->
+  <section id="fakta">
+    <div class="container section-text">
+      <div class="section-tag">Fakta Menarik</div>
+      <h2>Tugu Jogja dalam Angka</h2>
+      <p>
+        Beberapa fakta menarik tentang monumen legendaris ini, dari ukurannya
+        hingga perannya dalam kehidupan kota:
+      </p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="num">±15 m</div>
+          <div class="lbl">Tinggi tugu saat ini</div>
+        </div>
+        <div class="stat">
+          <div class="num">1867</div>
+          <div class="lbl">Gempa merobohkan tugu asli</div>
+        </div>
+        <div class="stat">
+          <div class="num">1889</div>
+          <div class="lbl">Rekonstruksi bentuk kerucut</div>
+        </div>
+        <div class="stat">
+          <div class="num">±250 th</div>
+          <div class="lbl">Usia sejak pertama dibangun</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="icon">📍</div>
+          <h3>Lokasi Strategis</h3>
+          <p>Berdiri di persimpangan Jalan Pangeran Diponegoro, Jalan A.M. Sangaji, dan
+          Jalan Jenderal Sudirman — salah satu simpul lalu lintas terpenting Yogyakarta.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🌙</div>
+          <h3>Rumah Para Anak Muda</h3>
+          <p>Plaza Tugu Jogja menjadi tempat nongkrong legendaris anak muda Yogyakarta,
+          terutama pada malam hari, lengkap dengan berbagai kuliner khas di sekitarnya.</p>
+        </div>
+        <div class="card">
+          <div class="icon">📸</div>
+          <h3>Magnet Fotografi</h3>
+          <p>Tugu ini adalah objek foto paling populer di Yogyakarta, terutama saat senja
+          dengan latar lampu kota atau di malam hari dengan pencahayaan khusus.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🎨</div>
+          <h3>Inspirasi Seni & Budaya</h3>
+          <p>Tugu Jogja menginspirasi berbagai karya seni, lagu, film, dan fotografi.
+          Namanya juga melekat pada berbagai merek dan kegiatan budaya kota.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🗼</div>
+          <h3>Satu Garis dengan Merapi</h3>
+          <p>Konon jika ditarik garis lurus dari Tugu menuju Keraton, garis tersebut
+          berlanjut lurus ke puncak Gunung Merapi — warisan tata kota kosmologis
+          Hamengkubuwono I.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🛡</div>
+          <h3>Sisa Golong-Gilig Asli</h3>
+          <p>Bangkai tugu Golong-Gilig yang roboh akibat gempa 1867 sebagian tersimpan
+          dan menjadi benda sejarah berharga peninggalan monumen asli.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>
+      © 2026 — Dibuat dengan Node.js & Three.js •
+      Model 3D "JOGJA 3D" oleh
+      <a href="https://sketchfab.com/saw_ind" target="_blank" rel="noopener">SAW IND / Pee Wee World</a>
+      — Lisensi <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC Attribution</a>
+    </div>
+  </footer>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

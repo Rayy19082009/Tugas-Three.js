@@ -1,0 +1,19 @@
+{
+  "name": "tugu-jogja-3d",
+  "version": "1.0.0",
+  "description": "Website sejarah Tugu Jogja dengan visualisasi 3D interaktif (Three.js)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.8"
+  }
+}
